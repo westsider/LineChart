@@ -7,14 +7,167 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+using System.IO;
 
 namespace LineChart
 {
     public partial class Form1 : Form
     {
+        private string csvPath = @"C:\Users\trade\Documents\_Send_To_Mac\VwapStats.csv";
+        private string daysWonMessage = "No Message";
+        private bool DailyGoal = false;
+        struct Trade
+        {
+            public DateTime DateValue;
+            public bool IsLong;
+            public int Gain;
+           
+            public Trade(DateTime dateValue, bool isLong, int gain)
+            {
+                DateValue = dateValue;
+                IsLong = isLong;
+                Gain = gain;
+            }
+        }
+
+        List<Trade> tradeList = new List<Trade>();
+
         public Form1()
         {
             InitializeComponent();
+            ReadCVS();
+            ConvertDataToChart(dailyGoal: DailyGoal);
+        }
+
+        private void chart1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ReadCVS()
+        {
+            StreamReader reader = new StreamReader(File.OpenRead(csvPath));
+            while (!reader.EndOfStream)
+            {
+                string line = reader.ReadLine();
+                if (!String.IsNullOrWhiteSpace(line))
+                {
+                    string[] values = line.Split(',');
+                    if (values.Length >= 3)
+                    {
+                        // 1/10/2020 2:52:26 PM,  Long,  75
+                        DateTime dateValue = ConvertStringFrom(date: values[0], debug: false);
+                        bool IsLong = false;
+                        if (values[1] == " Long") { IsLong = true; }
+                        int gain = 0;
+                        Int32.TryParse(values[2], out gain); 
+                        Trade trade = new Trade(dateValue, IsLong, gain);
+                        tradeList.Add(trade);
+                    }
+                }
+            }
+        }
+
+        private void ConvertDataToChart(bool dailyGoal)
+        {
+            List<int> profitList = new List<int>();
+            List<DateTime> dateList = new List<DateTime>();
+            int total = 0;
+            DateTime lastDate = DateTime.Today;
+            int lastProfit = 0;
+            int i = 0;
+            int dailyWin = 0;
+            int daysWon = 0;
+            int dayCount = 0;
+
+            foreach (var trade in tradeList)
+            {
+                Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain);
+                // only add if new date
+                if (!IsTheSameDay(date1: trade.DateValue, date2: lastDate ) && i > 0) {
+                    dayCount += 1;
+                    profitList.Add(lastProfit);
+                    dateList.Add(lastDate);
+                    if (dailyWin >= 0 )
+                    {
+                        daysWon += 1;
+                    }
+                    dailyWin = 0;
+                }
+                dailyWin += trade.Gain;
+                total += trade.Gain;
+                lastDate = trade.DateValue;
+                lastProfit = total;
+        
+                i++;
+            }
+            double pctWIn = ((double)daysWon / (double)dayCount) * 100;
+            var pctWInStr = String.Format("{0:0.0}", pctWIn);
+            daysWonMessage = pctWInStr + "% winning days";
+            SingleLineChart(name: "All Trades", dates: dateList, entries: profitList);
+            
+        }
+
+        private bool IsTheSameDay(DateTime date1, DateTime date2)
+        {
+            return (date1.Year == date2.Year && date1.DayOfYear == date2.DayOfYear);
+        }
+
+        private DateTime ConvertStringFrom(string date, bool debug)
+        {
+            DateTime dateValue;
+            if (DateTime.TryParse(date, out dateValue))
+                if (debug ) Console.WriteLine("Converted '{0}' to {1}.", date, dateValue);
+            else
+                if (debug) Console.WriteLine("Unable to convert '{0}' to a date.", date);
+            return dateValue;
+
+        }
+
+        private void SingleLineChart(string name, List<DateTime> dates, List<int> entries)
+        {
+            this.chart1.Series.Clear();
+            this.chart1.Titles.Add(daysWonMessage);
+            this.chart1.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
+            this.chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+            Series series = this.chart1.Series.Add(name);
+            series.ChartType = SeriesChartType.Spline;
+            int i = -1;
+            foreach (var entry in entries)
+            {
+                i++;
+                series.Points.AddXY(dates[i], entry);
+            }
+        }
+
+        public void BarExample()
+        {
+            this.chart1.Series.Clear();
+
+            // Data arrays
+            string[] seriesArray = { "Cat", "Dog", "Bird", "Monkey" };
+            int[] pointsArray = { 2, 1, 7, 5 };
+
+            // Set palette
+            this.chart1.Palette = ChartColorPalette.EarthTones;
+
+            // Set title
+            this.chart1.Titles.Add("Animals");
+
+            // Add series.
+            for (int i = 0; i < seriesArray.Length; i++)
+            {
+                Series series = this.chart1.Series.Add(seriesArray[i]);
+                series.Points.Add(pointsArray[i]);
+            }
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            DailyGoal = !DailyGoal;
+            Console.WriteLine("DailyGoal is " + DailyGoal);
+            ConvertDataToChart(dailyGoal: DailyGoal);
         }
     }
 }
