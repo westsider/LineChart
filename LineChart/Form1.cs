@@ -95,10 +95,17 @@ namespace LineChart
                     }
                     dailyWin = 0;
                 }
-                dailyWin += trade.Gain;
-                total += trade.Gain;
-                lastDate = trade.DateValue;
-                lastProfit = total;
+
+                if ( dailyGoal && dailyWin >= 75 )
+                {
+                    // we halt logging trades for the day
+                } else {
+                    dailyWin += trade.Gain;
+                    total += trade.Gain;
+                    lastDate = trade.DateValue;
+                    lastProfit = total;
+                }
+                
         
                 i++;
             }
@@ -128,9 +135,11 @@ namespace LineChart
         private void SingleLineChart(string name, List<DateTime> dates, List<int> entries)
         {
             this.chart1.Series.Clear();
+            this.chart1.Titles.Clear();
             this.chart1.Titles.Add(daysWonMessage);
             this.chart1.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
             this.chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+            chart1.ChartAreas[0].AxisY.LabelStyle.Format = "{$0,000}";
             Series series = this.chart1.Series.Add(name);
             series.ChartType = SeriesChartType.Spline;
             int i = -1;
