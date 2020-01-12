@@ -194,8 +194,9 @@ namespace LineChart
             this.chart1.Titles.Clear();
             this.chart1.Titles.Add(daysWonMessage);
             this.chart1.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
-            this.chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
-            chart1.ChartAreas[0].AxisY.LabelStyle.Format = "{$0,000}";
+            //this.chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+            this.chart1.ChartAreas[0].BackColor = Color.DimGray;
+           chart1.ChartAreas[0].AxisY.LabelStyle.Format = "{$0,000}";
             Series series = this.chart1.Series.Add(name);
             series.ChartType = SeriesChartType.Spline;
             int i = -1;
@@ -215,7 +216,8 @@ namespace LineChart
             chart2.Series.Add(series1);
             chart2.ChartAreas[0].AxisY.LabelStyle.Format = "{$0,000}";
             this.chart2.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
-
+            //this.chart2.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+            this.chart2.ChartAreas[0].BackColor = Color.DimGray;
             int i = -1;
             foreach (var entry in entries)
             {
