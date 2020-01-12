@@ -18,6 +18,7 @@ namespace LineChart
         private string daysWonMessage = "No Message";
         private bool DailyGoal = false;
         private bool MultiDailyGoal = false;
+        private int[] sumDay = new int[] { 0, 0, 0, 0, 0 };
 
         struct Trade
         {
@@ -86,6 +87,10 @@ namespace LineChart
             int dailyWin = 0;
             int daysWon = 0;
             int dayCount = 0;
+            int sumLong = 0;
+            int sumShort = 0;
+            //string days =  String.Join(", ", sumDay);
+            Array.Clear(sumDay, 0, 4);
 
             foreach (var trade in tradeList)
             {
@@ -110,6 +115,11 @@ namespace LineChart
                     total += trade.Gain;
                     lastDate = trade.DateValue;
                     lastProfit = total;
+                    if (trade.IsLong) {
+                        sumLong += trade.Gain; } else {
+                        sumShort += trade.Gain;
+                    }
+                    SumDaysOfWeek(fromDate: trade.DateValue, gain: trade.Gain);
                 } 
                 i++;
             }
@@ -117,6 +127,40 @@ namespace LineChart
             var pctWInStr = String.Format("{0:0.0}", pctWIn);
             daysWonMessage = pctWInStr + "% winning days";
             SingleLineChart(name: "All Trades", dates: dateList, entries: profitList);
+
+            string days3 =  String.Join(", ", sumDay);
+            string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " + sumShort + "\nDays " + days3;
+            richTextBox1.Text = textBoxMessage;
+        }
+
+        private void SumDaysOfWeek(DateTime fromDate, int gain)
+        {
+            
+            switch (fromDate.DayOfWeek)
+            {
+                case DayOfWeek.Sunday:
+                    
+                    break;
+                case DayOfWeek.Monday:
+                    sumDay[0] += gain;
+                    break;
+                case DayOfWeek.Tuesday:
+                    sumDay[1] += gain;
+                    break;
+                case DayOfWeek.Wednesday:
+                    sumDay[2] += gain;
+                    break;
+                case DayOfWeek.Thursday:
+                    sumDay[3] += gain;
+                    break;
+                case DayOfWeek.Friday:
+                    sumDay[4] += gain;
+                    break;
+                case DayOfWeek.Saturday:
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void ConvertHoursToChart(bool dailyGoal, int start1, int end1)
@@ -131,6 +175,9 @@ namespace LineChart
             int dailyWin = 0;
             int daysWon = 0;
             int dayCount = 0;
+            int sumLong = 0;
+            int sumShort = 0;
+            Array.Clear(sumDay, 0, 4);
 
             foreach (var trade in tradeList)
             {
@@ -162,15 +209,31 @@ namespace LineChart
                         total += trade.Gain;
                         lastDate = trade.DateValue;
                         lastProfit = total;
+                        if (trade.IsLong)
+                        {
+                            sumLong += trade.Gain;
+                        }
+                        else
+                        {
+                            sumShort += trade.Gain;
+                        }
                     }
-
+                    SumDaysOfWeek(fromDate: trade.DateValue, gain: trade.Gain);
                 }
                 i++;
             }
             double pctWIn = ((double)daysWon / (double)dayCount) * 100;
             var pctWInStr = String.Format("{0:0.0}", pctWIn);
             daysWonMessage = pctWInStr + "% winning days";
-            MultiLineChart(name: start1 + "-" + end1, dates: dateList, entries: profitList);
+            string thisName = start1 + "-" + end1;
+            MultiLineChart(name: thisName, dates: dateList, entries: profitList);
+            if (thisName == "9-12" )
+            {
+                string days3 = String.Join(", ", sumDay);
+                string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " + sumShort + "\nDays " + days3;
+                richTextBox2.Text = textBoxMessage;
+            }
+            
         }
 
         private bool IsTheSameDay(DateTime date1, DateTime date2)
@@ -193,7 +256,7 @@ namespace LineChart
         {
             this.chart1.Series.Clear();
             this.chart1.Titles.Clear();
-            this.chart1.Titles.Add(daysWonMessage); 
+            //this.chart1.Titles.Add(daysWonMessage); 
             this.chart1.ChartAreas[0].AxisY.LabelStyle.Format = "{$0,000}";
             Series series = this.chart1.Series.Add(name);
             series.ChartType = SeriesChartType.Line;
@@ -217,8 +280,14 @@ namespace LineChart
         }
 
         private void MultiLineChart(string name, List<DateTime> dates, List<int> entries)
-        { 
+        {
+            //if (name == "7-9")
+            //{
+            //    this.chart2.Series.Clear();
+            //}
+                
             Series series1 = new Series();
+           
             series1.ChartType = SeriesChartType.Line;
             series1.Name = name;
             chart2.Series.Add(series1);
