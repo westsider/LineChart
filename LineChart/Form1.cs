@@ -24,12 +24,14 @@ namespace LineChart
         {
             public DateTime DateValue;
             public bool IsLong;
+            public bool InsideIB;
             public int Gain;
            
-            public Trade(DateTime dateValue, bool isLong, int gain)
+            public Trade(DateTime dateValue, bool isLong, bool insideIB, int gain)
             {
                 DateValue = dateValue;
                 IsLong = isLong;
+                InsideIB = insideIB;
                 Gain = gain;
             }
         }
@@ -40,11 +42,12 @@ namespace LineChart
         {
             InitializeComponent();
             ReadCVS();
-
+            
             ConvertDataToChart(dailyGoal: DailyGoal);
             ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 7, end1: 9);
             ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 9, end1: 12);
             ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 12, end1: 15);
+
         }
 
         private void chart1_Click(object sender, EventArgs e)
@@ -53,7 +56,7 @@ namespace LineChart
         }
 
         private void ReadCVS()
-        {
+        { 
             StreamReader reader = new StreamReader(File.OpenRead(csvPath));
             while (!reader.EndOfStream)
             {
@@ -62,14 +65,19 @@ namespace LineChart
                 {
                     string[] values = line.Split(',');
                     if (values.Length >= 3)
-                    {
+                    { 
                         // 1/10/2020 2:52:26 PM,  Long,  75
                         DateTime dateValue = ConvertStringFrom(date: values[0], debug: false);
                         bool IsLong = false;
+                        bool InsideIB = false;
                         if (values[1] == " Long") { IsLong = true; }
                         int gain = 0;
-                        Int32.TryParse(values[2], out gain); 
-                        Trade trade = new Trade(dateValue, IsLong, gain);
+                        Int32.TryParse(values[2], out gain);
+                        if (values[3] == " True")
+                        {
+                            InsideIB = true;
+                        } 
+                        Trade trade = new Trade(dateValue, IsLong, InsideIB, gain);
                         tradeList.Add(trade);
                     }
                 }
@@ -89,12 +97,14 @@ namespace LineChart
             int dayCount = 0;
             int sumLong = 0;
             int sumShort = 0;
-            //string days =  String.Join(", ", sumDay);
+            int sumInsideIB = 0;
+            int sumOutsideIB = 0;
+
             Array.Clear(sumDay, 0, 4);
 
             foreach (var trade in tradeList)
-            {
-                Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain);
+            {                 
+                //Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", Inside: " + trade.InsideIB + ", " + trade.Gain);
                 // only add if new date
                 if (!IsTheSameDay(date1: trade.DateValue, date2: lastDate ) && i > 0) {
                     dayCount += 1;
@@ -120,6 +130,11 @@ namespace LineChart
                         sumShort += trade.Gain;
                     }
                     SumDaysOfWeek(fromDate: trade.DateValue, gain: trade.Gain);
+                    if (trade.InsideIB) {
+                        sumInsideIB += trade.Gain;
+                    } else {
+                        sumOutsideIB += trade.Gain; 
+                    }
                 } 
                 i++;
             }
@@ -129,7 +144,8 @@ namespace LineChart
             SingleLineChart(name: "All Trades", dates: dateList, entries: profitList);
 
             string days3 =  String.Join(", ", sumDay);
-            string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " + sumShort + "\nDays " + days3;
+            string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " 
+                + sumShort + "\nDays " + days3 + "\nSum Inside: " + sumInsideIB + " Sum Out: " + sumOutsideIB;
             richTextBox1.Text = textBoxMessage;
         }
 
@@ -177,11 +193,13 @@ namespace LineChart
             int dayCount = 0;
             int sumLong = 0;
             int sumShort = 0;
+            int sumInsideIB = 0;
+            int sumOutsideIB = 0;
             Array.Clear(sumDay, 0, 4);
 
             foreach (var trade in tradeList)
             {
-                Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain);
+                //Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain);
                 // only add if new date
                 if (trade.DateValue.TimeOfDay > new TimeSpan(start1, 00, 00) 
                     && trade.DateValue.TimeOfDay < new TimeSpan(end1, 00, 00))
@@ -217,8 +235,18 @@ namespace LineChart
                         {
                             sumShort += trade.Gain;
                         }
+
+                        SumDaysOfWeek(fromDate: trade.DateValue, gain: trade.Gain);
+                        if (trade.InsideIB)
+                        {
+                            sumInsideIB += trade.Gain;
+                        }
+                        else
+                        {
+                            sumOutsideIB += trade.Gain;
+                        }
                     }
-                    SumDaysOfWeek(fromDate: trade.DateValue, gain: trade.Gain);
+                    
                 }
                 i++;
             }
@@ -230,7 +258,8 @@ namespace LineChart
             if (thisName == "9-12" )
             {
                 string days3 = String.Join(", ", sumDay);
-                string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " + sumShort + "\nDays " + days3;
+                string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " 
+                    + sumShort + "\nDays " + days3 + "\nSum Inside: " + sumInsideIB + " Sum Out: " + sumOutsideIB;
                 richTextBox2.Text = textBoxMessage;
             }
             
@@ -280,14 +309,8 @@ namespace LineChart
         }
 
         private void MultiLineChart(string name, List<DateTime> dates, List<int> entries)
-        {
-            //if (name == "7-9")
-            //{
-            //    this.chart2.Series.Clear();
-            //}
-                
-            Series series1 = new Series();
-           
+        { 
+            Series series1 = new Series(); 
             series1.ChartType = SeriesChartType.Line;
             series1.Name = name;
             chart2.Series.Add(series1);
