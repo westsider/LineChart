@@ -17,6 +17,8 @@ namespace LineChart
         private string csvPath = @"C:\Users\trade\Documents\_Send_To_Mac\VwapStats.csv";
         private string daysWonMessage = "No Message";
         private bool DailyGoal = false;
+        private bool MultiDailyGoal = false;
+
         struct Trade
         {
             public DateTime DateValue;
@@ -38,9 +40,9 @@ namespace LineChart
             InitializeComponent();
             ReadCVS();
             ConvertDataToChart(dailyGoal: DailyGoal);
-            ConvertHoursToChart(dailyGoal: true, start1: 7, end1: 9);
-            ConvertHoursToChart(dailyGoal: true, start1: 9, end1: 12);
-            ConvertHoursToChart(dailyGoal: true, start1: 12, end1: 15);
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 7, end1: 9);
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 9, end1: 12);
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 12, end1: 15);
         }
 
         private void chart1_Click(object sender, EventArgs e)
@@ -206,7 +208,7 @@ namespace LineChart
 
         private void MultiLineChart(string name, List<DateTime> dates, List<int> entries)
         {
-
+            //this.chart2.Series.Clear();
             Series series1 = new Series();
             series1.ChartType = SeriesChartType.Line;
             series1.Name = name;
@@ -250,6 +252,15 @@ namespace LineChart
             DailyGoal = !DailyGoal;
             Console.WriteLine("DailyGoal is " + DailyGoal);
             ConvertDataToChart(dailyGoal: DailyGoal);
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            MultiDailyGoal = !MultiDailyGoal;
+            this.chart2.Series.Clear();
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 7, end1: 9);
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 9, end1: 12);
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 12, end1: 15);
         }
     }
 }
