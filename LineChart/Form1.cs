@@ -38,7 +38,9 @@ namespace LineChart
             InitializeComponent();
             ReadCVS();
             ConvertDataToChart(dailyGoal: DailyGoal);
-            ConvertHoursToChart(dailyGoal: false);
+            ConvertHoursToChart(dailyGoal: true, start1: 7, end1: 9);
+            ConvertHoursToChart(dailyGoal: true, start1: 9, end1: 12);
+            ConvertHoursToChart(dailyGoal: true, start1: 12, end1: 15);
         }
 
         private void chart1_Click(object sender, EventArgs e)
@@ -105,9 +107,7 @@ namespace LineChart
                     total += trade.Gain;
                     lastDate = trade.DateValue;
                     lastProfit = total;
-                }
-                
-        
+                } 
                 i++;
             }
             double pctWIn = ((double)daysWon / (double)dayCount) * 100;
@@ -116,7 +116,7 @@ namespace LineChart
             SingleLineChart(name: "All Trades", dates: dateList, entries: profitList);
         }
 
-        private void ConvertHoursToChart(bool dailyGoal)
+        private void ConvertHoursToChart(bool dailyGoal, int start1, int end1)
         {
 
             List<int> profitList = new List<int>();
@@ -133,8 +133,8 @@ namespace LineChart
             {
                 Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain);
                 // only add if new date
-                if (trade.DateValue.TimeOfDay > new TimeSpan(8, 59, 00) 
-                    && trade.DateValue.TimeOfDay < new TimeSpan(12, 01, 00))
+                if (trade.DateValue.TimeOfDay > new TimeSpan(start1, 00, 00) 
+                    && trade.DateValue.TimeOfDay < new TimeSpan(end1, 00, 00))
                 {
                     //match found
                     if (!IsTheSameDay(date1: trade.DateValue, date2: lastDate) && i > 0)
@@ -167,7 +167,7 @@ namespace LineChart
             double pctWIn = ((double)daysWon / (double)dayCount) * 100;
             var pctWInStr = String.Format("{0:0.0}", pctWIn);
             daysWonMessage = pctWInStr + "% winning days";
-            SingleLineChart2(name: "9-12", dates: dateList, entries: profitList);
+            MultiLineChart(name: start1 + "-" + end1, dates: dateList, entries: profitList);
         }
 
         private bool IsTheSameDay(DateTime date1, DateTime date2)
@@ -204,24 +204,25 @@ namespace LineChart
             }
         }
 
-        private void SingleLineChart2(string name, List<DateTime> dates, List<int> entries)
+        private void MultiLineChart(string name, List<DateTime> dates, List<int> entries)
         {
-            this.chart2.Series.Clear();
-            this.chart2.Titles.Clear();
-            this.chart2.Titles.Add(daysWonMessage);
-            this.chart2.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
-            this.chart2.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+
+            Series series1 = new Series();
+            series1.ChartType = SeriesChartType.Line;
+            series1.Name = name;
+            chart2.Series.Add(series1);
             chart2.ChartAreas[0].AxisY.LabelStyle.Format = "{$0,000}";
-            Series series = this.chart2.Series.Add(name);
-            series.ChartType = SeriesChartType.Spline;
+            this.chart2.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
+
             int i = -1;
             foreach (var entry in entries)
             {
                 i++;
-                series.Points.AddXY(dates[i], entry);
+                chart2.Series[name].Points.AddXY(dates[i], entry); 
             }
 
         }
+
         public void BarExample()
         {
             this.chart1.Series.Clear();
