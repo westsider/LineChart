@@ -26,13 +26,15 @@ namespace LineChart
             public bool IsLong;
             public bool InsideIB;
             public int Gain;
+            public int SwingNumber;
            
-            public Trade(DateTime dateValue, bool isLong, bool insideIB, int gain)
+            public Trade(DateTime dateValue, bool isLong, bool insideIB, int gain, int swingNumber)
             {
                 DateValue = dateValue;
                 IsLong = isLong;
                 InsideIB = insideIB;
                 Gain = gain;
+                SwingNumber = swingNumber;
             }
         }
 
@@ -41,13 +43,11 @@ namespace LineChart
         public Form1()
         {
             InitializeComponent();
-            ReadCVS();
-            
+            ReadCVS(); 
             ConvertDataToChart(dailyGoal: DailyGoal);
             ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 7, end1: 9);
             ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 9, end1: 12);
-            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 12, end1: 15);
-
+            ConvertHoursToChart(dailyGoal: MultiDailyGoal, start1: 12, end1: 15); 
         }
 
         private void chart1_Click(object sender, EventArgs e)
@@ -76,8 +76,10 @@ namespace LineChart
                         if (values[3] == " True")
                         {
                             InsideIB = true;
-                        } 
-                        Trade trade = new Trade(dateValue, IsLong, InsideIB, gain);
+                        }
+                        int swing = 0;
+                        Int32.TryParse(values[4], out swing);
+                        Trade trade = new Trade(dateValue, IsLong, InsideIB, gain, swing);
                         tradeList.Add(trade);
                     }
                 }
@@ -99,12 +101,13 @@ namespace LineChart
             int sumShort = 0;
             int sumInsideIB = 0;
             int sumOutsideIB = 0;
+            List<bool> performanceInside = new List<bool>();
+            List<bool> performanceOutside = new List<bool>();
 
             Array.Clear(sumDay, 0, 4);
 
             foreach (var trade in tradeList)
-            {                 
-                //Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", Inside: " + trade.InsideIB + ", " + trade.Gain);
+            {    
                 // only add if new date
                 if (!IsTheSameDay(date1: trade.DateValue, date2: lastDate ) && i > 0) {
                     dayCount += 1;
@@ -132,8 +135,18 @@ namespace LineChart
                     SumDaysOfWeek(fromDate: trade.DateValue, gain: trade.Gain);
                     if (trade.InsideIB) {
                         sumInsideIB += trade.Gain;
+                        if ( trade.Gain > 0 ) {
+                            performanceInside.Add(true);
+                        } else {
+                            performanceInside.Add(false);
+                        }
                     } else {
-                        sumOutsideIB += trade.Gain; 
+                        sumOutsideIB += trade.Gain;
+                        if (trade.Gain > 0) {
+                            performanceOutside.Add(true);
+                        } else {
+                            performanceOutside.Add(false);
+                        }
                     }
                 } 
                 i++;
@@ -143,9 +156,18 @@ namespace LineChart
             daysWonMessage = pctWInStr + "% winning days";
             SingleLineChart(name: "All Trades", dates: dateList, entries: profitList);
 
+            double pctWinInIB = ((double)performanceInside.Count(c => c) / (double)performanceInside.Count) * 100;
+            var pctWInIBStr = String.Format("{0:0.0}", pctWinInIB);
+            string iBCount =  performanceInside.Count + " inside IB " + performanceInside.Count(c => c) + " wins " + pctWInIBStr + "%";
+
+            double pctWinOutIB = ((double)performanceOutside.Count(c => c) / (double)performanceOutside.Count) * 100;
+            var pctWInOutIBStr = String.Format("{0:0.0}", pctWinOutIB);
+            string OutiBCount = performanceOutside.Count + " outside IB " + performanceOutside.Count(c => c) + " wins " + pctWInOutIBStr + "%";
+
             string days3 =  String.Join(", ", sumDay);
             string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " 
-                + sumShort + "\nDays " + days3 + "\nSum Inside: " + sumInsideIB + " Sum Out: " + sumOutsideIB;
+                + sumShort + "\nDays " + days3 + "\nSum Inside: " + sumInsideIB + " Sum Out: " + sumOutsideIB + "\n" +
+                iBCount + "\n" + OutiBCount;
             richTextBox1.Text = textBoxMessage;
         }
 
@@ -194,12 +216,14 @@ namespace LineChart
             int sumLong = 0;
             int sumShort = 0;
             int sumInsideIB = 0;
-            int sumOutsideIB = 0;
+            int sumOutsideIB = 0; 
+            List<bool> performanceInside = new List<bool>();
+            List<bool> performanceOutside = new List<bool>();
             Array.Clear(sumDay, 0, 4);
 
             foreach (var trade in tradeList)
             {
-                //Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain);
+                Console.WriteLine(trade.DateValue + ", IsLong: " + trade.IsLong + ", " + trade.Gain + ", " + trade.SwingNumber);
                 // only add if new date
                 if (trade.DateValue.TimeOfDay > new TimeSpan(start1, 00, 00) 
                     && trade.DateValue.TimeOfDay < new TimeSpan(end1, 00, 00))
@@ -240,10 +264,26 @@ namespace LineChart
                         if (trade.InsideIB)
                         {
                             sumInsideIB += trade.Gain;
+                            if (trade.Gain > 0)
+                            {
+                                performanceInside.Add(true);
+                            }
+                            else
+                            {
+                                performanceInside.Add(false);
+                            }
                         }
                         else
                         {
                             sumOutsideIB += trade.Gain;
+                            if (trade.Gain > 0)
+                            {
+                                performanceOutside.Add(true);
+                            }
+                            else
+                            {
+                                performanceOutside.Add(false);
+                            }
                         }
                     }
                     
@@ -257,9 +297,19 @@ namespace LineChart
             MultiLineChart(name: thisName, dates: dateList, entries: profitList);
             if (thisName == "9-12" )
             {
+                double pctWinInIB = ((double)performanceInside.Count(c => c) / (double)performanceInside.Count) * 100;
+                var pctWInIBStr = String.Format("{0:0.0}", pctWinInIB);
+                string iBCount = performanceInside.Count + " inside IB " + performanceInside.Count(c => c) + " wins " + pctWInIBStr + "%";
+
+                double pctWinOutIB = ((double)performanceOutside.Count(c => c) / (double)performanceOutside.Count) * 100;
+                var pctWInOutIBStr = String.Format("{0:0.0}", pctWinOutIB);
+                string OutiBCount = performanceOutside.Count + " outside IB " + performanceOutside.Count(c => c) + " wins " + pctWInOutIBStr + "%";
+
                 string days3 = String.Join(", ", sumDay);
+                 
                 string textBoxMessage = daysWonMessage + "\nSum Long " + sumLong + ", Sum Short: " 
-                    + sumShort + "\nDays " + days3 + "\nSum Inside: " + sumInsideIB + " Sum Out: " + sumOutsideIB;
+                    + sumShort + "\nDays " + days3 + "\nSum Inside: " + sumInsideIB + " Sum Out: " + sumOutsideIB +
+                iBCount + "\n" + OutiBCount;
                 richTextBox2.Text = textBoxMessage;
             }
             
